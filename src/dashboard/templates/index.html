@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KlawTrade Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a;
+      --text: #e1e4eb; --muted: #8b8fa3; --green: #22c55e;
+      --red: #ef4444; --blue: #3b82f6; --yellow: #eab308;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+           background: var(--bg); color: var(--text); padding: 20px; }
+    h1 { font-size: 1.5rem; margin-bottom: 6px; }
+    .subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .card-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .card-value { font-size: 1.6rem; font-weight: 700; margin-top: 4px; }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+    .neutral  { color: var(--text); }
+    .section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+    .section h2 { font-size: 1rem; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .btn { cursor: pointer; border: none; border-radius: 6px; padding: 10px 20px;
+           font-weight: 600; font-size: 0.85rem; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-success { background: var(--green); color: #fff; }
+    .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+    .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    .status-active { background: var(--green); }
+    .status-halted { background: var(--red); }
+    #chart-container { height: 220px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>KlawTrade</h1>
+  <p class="subtitle">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Connecting...</span>
+    &mdash; Last update: <span id="lastUpdate">--</span>
+  </p>
+
+  <!-- KPI Cards -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">Total Equity</div>
+      <div class="card-value neutral" id="totalEquity">$--</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Cash</div>
+      <div class="card-value neutral" id="cash">$--</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Daily P&amp;L</div>
+      <div class="card-value" id="dailyPnl">$--</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Weekly P&amp;L</div>
+      <div class="card-value" id="weeklyPnl">$--</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Drawdown</div>
+      <div class="card-value" id="drawdown">--</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Win Rate</div>
+      <div class="card-value neutral" id="winRate">--</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-danger" id="killBtn" onclick="killSwitch()">KILL SWITCH</button>
+    <button class="btn btn-success" id="resumeBtn" onclick="resumeTrading()">RESUME</button>
+  </div>
+
+  <!-- Equity Chart -->
+  <div class="section">
+    <h2>Equity Curve</h2>
+    <div id="chart-container">
+      <canvas id="equityChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Positions & Trades side by side -->
+  <div class="two-col">
+    <div class="section">
+      <h2>Open Positions</h2>
+      <table>
+        <thead><tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Current</th><th>P&amp;L</th></tr></thead>
+        <tbody id="positionsBody"><tr><td colspan="5" style="color:var(--muted)">No positions</td></tr></tbody>
+      </table>
+    </div>
+    <div class="section">
+      <h2>Recent Trades</h2>
+      <table>
+        <thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Price</th><th>Time</th></tr></thead>
+        <tbody id="tradesBody"><tr><td colspan="5" style="color:var(--muted)">No trades</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Risk Metrics -->
+  <div class="section">
+    <h2>Risk Metrics</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="card-label">Trades Today</div>
+        <div class="card-value neutral" id="tradesToday">0</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Consecutive Losses</div>
+        <div class="card-value" id="consLosses">0</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Open Positions</div>
+        <div class="card-value neutral" id="openPositions">0</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Circuit Breaker</div>
+        <div class="card-value" id="circuitBreaker">OK</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ---- Chart setup ----
+  const ctx = document.getElementById('equityChart').getContext('2d');
+  const equityData = { labels: [], datasets: [{
+    label: 'Equity', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)',
+    fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
+  }]};
+  const equityChart = new Chart(ctx, {
+    type: 'line', data: equityData,
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { display: true, grid: { color: '#2a2d3a' }, ticks: { color: '#8b8fa3', maxTicksLimit: 10 } },
+        y: { grid: { color: '#2a2d3a' }, ticks: { color: '#8b8fa3', callback: v => '$' + v.toLocaleString() } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // ---- Helpers ----
+  function fmt(n) { return n == null ? '--' : '$' + Number(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function pct(n) { return n == null ? '--' : (n * 100).toFixed(2) + '%'; }
+  function pnlClass(n) { return n > 0 ? 'positive' : n < 0 ? 'negative' : 'neutral'; }
+
+  function updateUI(s) {
+    document.getElementById('totalEquity').textContent = fmt(s.total_equity);
+    document.getElementById('cash').textContent = fmt(s.cash);
+
+    const dpnl = document.getElementById('dailyPnl');
+    dpnl.textContent = fmt(s.daily_pnl) + ' (' + pct(s.daily_pnl_pct) + ')';
+    dpnl.className = 'card-value ' + pnlClass(s.daily_pnl);
+
+    const wpnl = document.getElementById('weeklyPnl');
+    wpnl.textContent = fmt(s.weekly_pnl) + ' (' + pct(s.weekly_pnl_pct) + ')';
+    wpnl.className = 'card-value ' + pnlClass(s.weekly_pnl);
+
+    const dd = document.getElementById('drawdown');
+    dd.textContent = pct(s.current_drawdown_pct);
+    dd.className = 'card-value ' + (s.current_drawdown_pct > 0.05 ? 'negative' : 'neutral');
+
+    document.getElementById('winRate').textContent = pct(s.win_rate);
+    document.getElementById('tradesToday').textContent = s.trades_today || 0;
+
+    const cl = document.getElementById('consLosses');
+    cl.textContent = s.consecutive_losses || 0;
+    cl.className = 'card-value ' + (s.consecutive_losses >= 3 ? 'negative' : 'neutral');
+
+    document.getElementById('openPositions').textContent = s.positions ? s.positions.length : 0;
+
+    const cb = document.getElementById('circuitBreaker');
+    const halted = s.circuit_breaker_active;
+    cb.textContent = halted ? 'HALTED' : 'OK';
+    cb.className = 'card-value ' + (halted ? 'negative' : 'positive');
+
+    const dot = document.getElementById('statusDot');
+    const stxt = document.getElementById('statusText');
+    dot.className = 'status-dot ' + (halted ? 'status-halted' : 'status-active');
+    stxt.textContent = halted ? 'HALTED' : 'Running';
+
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+    // Positions table
+    const pb = document.getElementById('positionsBody');
+    if (s.positions && s.positions.length) {
+      pb.innerHTML = s.positions.map(p =>
+        `<tr><td>${p.symbol}</td><td>${p.quantity}</td><td>${fmt(p.avg_entry_price)}</td>` +
+        `<td>${fmt(p.current_price)}</td><td class="${pnlClass(p.unrealized_pnl)}">${fmt(p.unrealized_pnl)}</td></tr>`
+      ).join('');
+    } else {
+      pb.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No positions</td></tr>';
+    }
+
+    // Equity chart update
+    const now = new Date().toLocaleTimeString();
+    equityData.labels.push(now);
+    equityData.datasets[0].data.push(s.total_equity);
+    if (equityData.labels.length > 100) { equityData.labels.shift(); equityData.datasets[0].data.shift(); }
+    equityChart.update('none');
+  }
+
+  // ---- Trades polling ----
+  async function loadTrades() {
+    try {
+      const res = await fetch('/api/trades');
+      const trades = await res.json();
+      const tb = document.getElementById('tradesBody');
+      if (trades.length) {
+        tb.innerHTML = trades.slice(0, 20).map(t =>
+          `<tr><td>${t.symbol}</td><td>${t.side}</td><td>${t.quantity}</td>` +
+          `<td>${fmt(t.filled_price)}</td><td>${t.filled_at ? new Date(t.filled_at).toLocaleTimeString() : '--'}</td></tr>`
+        ).join('');
+      }
+    } catch(e) {}
+  }
+
+  // ---- WebSocket ----
+  let ws;
+  function connect() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(proto + '://' + location.host + '/ws');
+    ws.onopen = () => { ws.send('ping'); };
+    ws.onmessage = (e) => {
+      try { updateUI(JSON.parse(e.data)); } catch(err) {}
+    };
+    ws.onclose = () => { setTimeout(connect, 3000); };
+    ws.onerror = () => { ws.close(); };
+  }
+  connect();
+
+  // ---- Fallback polling ----
+  async function poll() {
+    try {
+      const res = await fetch('/api/state');
+      const data = await res.json();
+      updateUI(data);
+    } catch(e) {}
+  }
+  setInterval(poll, 5000);
+  setInterval(loadTrades, 10000);
+  poll(); loadTrades();
+
+  // ---- Controls ----
+  async function killSwitch() {
+    if (!confirm('Halt all trading?')) return;
+    await fetch('/api/kill', { method: 'POST' });
+    poll();
+  }
+  async function resumeTrading() {
+    if (!confirm('Resume trading?')) return;
+    await fetch('/api/resume', { method: 'POST' });
+    poll();
+  }
+</script>
+</body>
+</html>

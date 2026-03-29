@@ -1,0 +1,85 @@
+system:
+  mode: "paper"
+  timezone: "US/Eastern"
+  trading_hours:
+    start: "09:30"
+    end: "16:00"
+  heartbeat_interval_seconds: 30
+  max_concurrent_orders: 5
+  always_on: true  # Bypass market hours check (for simulation/demo)
+
+broker:
+  provider: "alpaca"
+  paper: true
+
+risk:
+  max_portfolio_allocation: 0.90
+  max_single_position_pct: 0.10
+  max_sector_allocation_pct: 0.30
+  max_correlated_exposure_pct: 0.40
+
+  max_daily_loss_pct: 0.03
+  max_weekly_loss_pct: 0.07
+  max_drawdown_pct: 0.15
+  max_single_trade_loss_pct: 0.02
+
+  max_open_positions: 15
+  max_daily_trades: 50
+  min_cash_reserve_pct: 0.10
+
+  circuit_breaker:
+    consecutive_losses_halt: 5
+    halt_duration_minutes: 60
+    vix_threshold: 35
+    daily_pnl_check_interval: 300
+
+  order_guards:
+    require_limit_orders: true
+    max_slippage_pct: 0.005
+    min_volume_threshold: 100000
+    max_spread_pct: 0.02
+    blacklisted_symbols: ["GME", "AMC", "BBBY"]
+
+strategy:
+  llm:
+    model: "claude-sonnet-4-20250514"
+    max_tokens: 2048
+    temperature: 0.3
+    max_retries: 3
+    timeout_seconds: 30
+    max_daily_api_cost_usd: 10.00
+
+  analysis:
+    full_analysis_interval_minutes: 15
+    quick_scan_interval_minutes: 5
+    news_check_interval_minutes: 30
+
+  signals:
+    min_confidence: 0.70
+    required_confirmations: 2
+    max_signal_age_seconds: 300
+
+  universe:
+    watchlist: ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "AMD"]
+    scan_for_new: false
+    max_universe_size: 25
+
+portfolio:
+  starting_capital: 100000
+  benchmark: "SPY"
+  rebalance_check_interval_hours: 4
+
+dashboard:
+  enabled: true
+  port: 8080
+  auth_enabled: false
+  update_interval_ms: 1000
+
+logging:
+  level: "INFO"
+  format: "json"
+  file: "logs/klawtrade.log"
+  max_size_mb: 100
+  rotation: "daily"
+  log_all_signals: true
+  log_all_risk_checks: true
