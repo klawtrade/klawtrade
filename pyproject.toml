@@ -28,6 +28,7 @@ dependencies = [
     "sqlalchemy>=2.0.48",
     "uvicorn>=0.42.0",
     "websockets>=16.0",
+    "yfinance>=0.2.36",
 ]
 
 [project.scripts]

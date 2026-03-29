@@ -169,6 +169,55 @@ def cmd_init(args: argparse.Namespace) -> None:
     print("  klawtrade start")
 
 
+def cmd_backtest(args: argparse.Namespace) -> None:
+    """Run a historical backtest."""
+    from src.backtesting import BacktestEngine
+
+    # Parse symbols
+    if args.symbols:
+        symbols = [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
+    else:
+        # Fall back to default watchlist from config
+        from src.config import load_config
+        config = load_config(Path(args.config) if args.config else None)
+        symbols = config.strategy.universe.watchlist
+
+    # Parse strategies
+    valid_strategies = ("momentum", "mean_reversion")
+    if args.strategy == "all":
+        strategy_names = list(valid_strategies)
+    else:
+        if args.strategy not in valid_strategies:
+            print(
+                f"Error: Unknown strategy '{args.strategy}'. "
+                f"Choose from: {', '.join(valid_strategies)}, all"
+            )
+            sys.exit(1)
+        strategy_names = [args.strategy]
+
+    print(f"\n  Symbols:    {', '.join(symbols)}")
+    print(f"  Period:     {args.start_date} to {args.end_date}")
+    print(f"  Capital:    ${args.capital:,.2f}")
+    print(f"  Strategies: {', '.join(strategy_names)}")
+
+    try:
+        engine = BacktestEngine(
+            symbols=symbols,
+            start_date=args.start_date,
+            end_date=args.end_date,
+            starting_capital=args.capital,
+            strategy_names=strategy_names,
+        )
+        metrics = engine.run()
+        print(metrics.summary_report())
+    except ValueError as e:
+        print(f"\nError: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\nBacktest failed: {e}")
+        sys.exit(1)
+
+
 def cmd_status(args: argparse.Namespace) -> None:
     """Check if KlawTrade is running and show basic status."""
     import urllib.request
@@ -233,6 +282,35 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip interactive wizard, use defaults",
     )
     p_init.set_defaults(func=cmd_init)
+
+    # klawtrade backtest
+    p_bt = sub.add_parser("backtest", help="Run a historical backtest")
+    p_bt.add_argument(
+        "--start-date", required=True,
+        help="Start date (YYYY-MM-DD)",
+    )
+    p_bt.add_argument(
+        "--end-date", required=True,
+        help="End date (YYYY-MM-DD)",
+    )
+    p_bt.add_argument(
+        "--symbols", type=str, default=None,
+        help="Comma-separated symbols (default: config watchlist)",
+    )
+    p_bt.add_argument(
+        "--capital", type=float, default=100_000.0,
+        help="Starting capital (default: 100000)",
+    )
+    p_bt.add_argument(
+        "--strategy", type=str, default="all",
+        choices=["momentum", "mean_reversion", "all"],
+        help="Strategy to backtest (default: all)",
+    )
+    p_bt.add_argument(
+        "-c", "--config", type=str, default=None,
+        help="Path to settings.yaml",
+    )
+    p_bt.set_defaults(func=cmd_backtest)
 
     # klawtrade status
     p_status = sub.add_parser("status", help="Check if KlawTrade is running")
