@@ -2,7 +2,7 @@
 
 Autonomous algorithmic trading system with deterministic strategies, 14-check risk management, circuit breakers, and a real-time dashboard.
 
-Works out of the box in **simulation mode** (no API keys needed). Optionally connects to **Alpaca** for real paper trading.
+Works out of the box in **simulation mode** (no API keys needed). Optionally connects to **Alpaca** and **5** other brokers for monetary or paper trading.
 
 ## Quick Start Guide
 
