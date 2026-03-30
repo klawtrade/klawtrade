@@ -4,7 +4,7 @@ Autonomous algorithmic trading system with deterministic strategies, 14-check ri
 
 Works out of the box in **simulation mode** (no API keys needed). Optionally connects to **Alpaca** for real paper trading.
 
-## Quick Start
+## Quick Start Guide
 
 ### Option 1: pip install
 
