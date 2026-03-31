@@ -1,12 +1,71 @@
+<div align="center">
+
 # KlawTrade
 
-Autonomous algorithmic trading system with deterministic strategies, 14-check risk management, circuit breakers, and a real-time dashboard.
+### The Next Generation of Wealth Creation
 
+<<<<<<< Updated upstream
 Works out of the box in **simulation mode** (no API keys needed). Optionally connects to **Alpaca** and **5** other brokers for monetary or paper trading.
+=======
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)]()
+[![Website](https://img.shields.io/badge/Website-klawtrade.com-orange.svg)](https://klawtrade.com)
+
+**Open-source algorithmic trading platform with rule-based strategies, 14-check risk management, and 6 broker integrations.**
+
+[Website](https://klawtrade.com) &bull; [Documentation](https://klawtrade.com/docs) &bull; [GitHub Issues](https://github.com/klawtrade/klawtrade/issues)
+
+</div>
+
+---
+
+## Quick Demo
+
+Get a Python trading bot running in three commands -- no API keys required:
+
+```bash
+pip install klawtrade
+klawtrade init my-trading-bot && cd my-trading-bot
+klawtrade start
+```
+
+Open **http://localhost:8080** to see the real-time trading dashboard.
+
+---
+
+## Features
+
+### :bar_chart: Rule-Based Trading Strategies
+
+Seven deterministic strategies built for automated trading: **SMA crossover**, **RSI**, **MACD**, **Bollinger Bands**, **Stochastic RSI**, **Momentum**, and **Mean Reversion**. Every signal includes a confidence score and full audit trail.
+
+### :shield: 14-Check Risk Gate
+
+Every trade passes through all 14 risk checks before execution -- no short-circuit evaluation. Covers position sizing, daily loss limits, drawdown protection, sector allocation, correlated exposure, cash reserves, volume thresholds, and spread width.
+
+### :zap: 7-Trigger Circuit Breaker
+
+Automatic trading halt on consecutive losses, daily loss limit, weekly loss limit, max drawdown, VIX spike, error rate threshold, or manual kill switch. Protects capital during volatile markets.
+
+### :chart_with_upwards_trend: Real-Time Dashboard
+
+WebSocket-powered dashboard at `localhost:8080` with live equity curve, open positions, trade log, portfolio metrics, and a one-click kill switch for emergency stops.
+
+### :link: 6 Broker Integrations
+
+Connect to **Alpaca**, **Interactive Brokers**, **Coinbase**, **Binance**, **Kraken**, or **Tradier**. Runs in simulation mode with zero configuration -- add API keys when you are ready for live paper trading or real execution.
+
+### :test_tube: Historical Backtesting
+
+Backtest any strategy against historical data. Outputs Sharpe ratio, win rate, max drawdown, profit factor, and full trade logs for quantitative analysis.
+
+---
+>>>>>>> Stashed changes
 
 ## Quick Start Guide
 
-### Option 1: pip install
+### Option 1: pip install (recommended)
 
 ```bash
 pip install klawtrade
@@ -33,65 +92,15 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Open **http://localhost:8080** to see the dashboard.
+Works out of the box in **simulation mode** -- no API keys needed. Open **http://localhost:8080** to see the dashboard.
 
-## Features
-
-- **Rule-based strategies** -- Momentum (SMA crossover + RSI + MACD) and Mean Reversion (Bollinger Bands + Stochastic RSI)
-- **14-check risk manager** -- Position sizing, daily loss limits, drawdown protection, sector allocation, correlated exposure, cash reserves, and more
-- **Circuit breakers** -- Auto-halt on consecutive losses, daily/weekly loss, max drawdown, or system errors
-- **Kelly criterion position sizing** -- Optimal bet sizing with half-Kelly conservative default
-- **Real-time dashboard** -- Equity curve, open positions, trade log, kill switch, WebSocket updates
-- **Simulation mode** -- Runs without any API keys using simulated market data and a mock broker
-- **Alpaca integration** -- Drop in your API keys for real paper trading
-- **SQLite storage** -- All signals, orders, trades, and portfolio snapshots persisted
-
-## Configuration
-
-Edit `config/settings.yaml` to customize:
-
-```yaml
-system:
-  heartbeat_interval_seconds: 30
-  always_on: true        # Trade outside market hours (simulation)
-
-risk:
-  max_daily_loss_pct: 0.03
-  max_drawdown_pct: 0.15
-  max_single_position_pct: 0.10
-
-portfolio:
-  starting_capital: 100000
-
-dashboard:
-  port: 8080
-```
-
-## Alpaca Paper Trading
-
-1. Create a free account at [alpaca.markets](https://alpaca.markets)
-2. Generate paper trading API keys
-3. Add them to your `.env` file:
-
-```
-ALPACA_API_KEY=your_key_here
-ALPACA_SECRET_KEY=your_secret_here
-```
-
-4. Restart KlawTrade -- it auto-detects the keys and switches to Alpaca
-
-## CLI Commands
-
-```bash
-klawtrade start              # Start trading system
-klawtrade start --sim        # Force simulation mode
-klawtrade start -p 9090      # Custom dashboard port
-klawtrade start -c path.yaml # Custom config file
-klawtrade init [directory]   # Initialize project directory
-klawtrade status             # Check if KlawTrade is running
-```
+---
 
 ## Architecture
+
+```
+Signal Generation ──> Risk Gate (14 checks) ──> Circuit Breaker (7 triggers) ──> Broker Execution
+```
 
 ```
 src/
@@ -125,30 +134,135 @@ src/
     models.py             # Data models
   dashboard/
     app.py                # FastAPI + WebSocket dashboard
-  utils/
-    logging.py            # Structured JSON logging
-    time_utils.py         # Market hours utilities
 ```
 
-## Risk Management
+---
 
-Every signal passes through **all 14 checks** before execution (no short-circuit):
+## Broker Setup
 
-1. Symbol blacklist
-2. Circuit breaker status
-3. Signal expiry
-4. Confidence threshold (min 70%)
-5. Daily trade count limit
-6. Max open positions
-7. Volume threshold
-8. Spread width
-9. Position size limit (max 10% of portfolio)
-10. Sector allocation (max 30%)
-11. Correlated exposure (max 40%)
-12. Cash reserve (min 10%)
-13. Daily loss limit (max 3%)
-14. Drawdown limit (max 15%)
+| Broker | Environment Variables | Optional Dependency |
+|---|---|---|
+| **Simulation** | None required | -- |
+| **Alpaca** | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY` | Included by default |
+| **Interactive Brokers** | `IBKR_HOST`, `IBKR_PORT`, `IBKR_CLIENT_ID` | `pip install klawtrade[ibkr]` |
+| **Coinbase** | `COINBASE_API_KEY`, `COINBASE_API_SECRET` | `pip install klawtrade[coinbase]` |
+| **Binance** | `BINANCE_API_KEY`, `BINANCE_API_SECRET` | `pip install klawtrade[binance]` |
+| **Kraken** | `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` | `pip install klawtrade[kraken]` |
+| **Tradier** | `TRADIER_ACCESS_TOKEN`, `TRADIER_ACCOUNT_ID` | `pip install klawtrade[tradier]` |
+
+Install all broker integrations at once:
+
+```bash
+pip install klawtrade[all-brokers]
+```
+
+Add your keys to a `.env` file in the project root. KlawTrade auto-detects available credentials and connects to the appropriate broker.
+
+---
+
+## Dashboard
+
+The built-in trading dashboard runs at **http://localhost:8080** and provides:
+
+- **Live equity curve** -- portfolio value over time with WebSocket updates
+- **Open positions** -- current holdings with unrealized P&L
+- **Trade log** -- full history of executed trades
+- **Portfolio metrics** -- daily return, total return, Sharpe ratio, max drawdown
+- **Kill switch** -- one-click emergency stop for all trading activity
+
+No additional setup required -- the dashboard starts automatically with `klawtrade start`.
+
+---
+
+## Configuration
+
+Edit `config/settings.yaml` to customize the trading system:
+
+```yaml
+system:
+  heartbeat_interval_seconds: 30
+  always_on: true               # Trade outside market hours (simulation)
+
+risk:
+  max_daily_loss_pct: 0.03      # 3% daily loss limit
+  max_drawdown_pct: 0.15        # 15% max drawdown
+  max_single_position_pct: 0.10 # 10% max position size
+  max_sector_allocation: 0.30   # 30% max sector exposure
+  min_cash_reserve_pct: 0.10    # 10% cash reserve
+
+portfolio:
+  starting_capital: 100000
+
+strategies:
+  - momentum                    # SMA crossover + RSI + MACD
+  - mean_reversion              # Bollinger Bands + Stoch RSI
+
+dashboard:
+  port: 8080
+```
+
+See [full configuration reference](https://klawtrade.com/docs/configuration) for all options.
+
+---
+
+## Backtesting
+
+Run a historical backtest against any strategy:
+
+```bash
+klawtrade backtest --strategy momentum --start 2024-01-01 --end 2024-12-31
+```
+
+Sample output:
+
+```
+Strategy: Momentum (SMA + RSI + MACD)
+Period: 2024-01-01 to 2024-12-31
+Total Trades: 142
+Win Rate: 58.4%
+Sharpe Ratio: 1.87
+Max Drawdown: -8.2%
+Profit Factor: 1.64
+Total Return: 24.3%
+```
+
+---
+
+## CLI Commands
+
+```bash
+klawtrade start              # Start the trading system
+klawtrade start --sim        # Force simulation mode
+klawtrade start -p 9090      # Custom dashboard port
+klawtrade start -c path.yaml # Custom config file
+klawtrade init [directory]   # Initialize a new project
+klawtrade status             # Check if KlawTrade is running
+klawtrade backtest           # Run historical backtesting
+```
+
+---
+
+## Contributing
+
+Contributions are welcome. Please open an issue first to discuss what you would like to change.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes
+4. Push to the branch and open a pull request
+
+---
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**[Website](https://klawtrade.com)** &bull; **[Documentation](https://klawtrade.com/docs)** &bull; **[GitHub Issues](https://github.com/klawtrade/klawtrade/issues)** &bull; **[PyPI](https://pypi.org/project/klawtrade/)**
+
+Built for algorithmic traders, quantitative analysts, and anyone automating their trading strategies with Python.
+
+</div>

@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 from src.config import KlawTradeConfig, load_config
 from src.dashboard.app import Dashboard
-from src.execution.alpaca_broker import AlpacaBroker, alpaca_keys_present
+from src.execution import create_broker, SUPPORTED_BROKERS
 from src.execution.order_manager import OrderManager
 from src.execution.sim_broker import SimBroker
 from src.market_data.aggregator import MarketDataAggregator
@@ -70,7 +70,7 @@ class KlawTrade:
         self.dashboard: Optional[Dashboard] = None
         self.aggregator: Optional[MarketDataAggregator] = None
         self.strategy_engine: Optional[StrategyEngine] = None
-        self.broker: Optional[SimBroker | AlpacaBroker] = None
+        self.broker: Optional[Any] = None  # SimBroker or any Broker subclass
         self.order_manager: Optional[OrderManager] = None
         self._broker_mode: str = "simulated"
 
@@ -126,16 +126,29 @@ class KlawTrade:
             extra={"strategies": self.strategy_engine.strategy_count},
         )
 
-        # Broker + order manager (auto-detect Alpaca keys)
+        # Broker + order manager (auto-detect from config provider)
         force_sim = os.environ.get("KLAWTRADE_FORCE_SIM") == "1"
-        if not force_sim and alpaca_keys_present():
-            self.broker = AlpacaBroker(paper=self.config.broker.paper)
-            self._broker_mode = "alpaca"
-            logger.info("AlpacaBroker initialised (paper=%s)", self.config.broker.paper)
-        else:
+        if force_sim:
             self.broker = SimBroker(initial_cash=self.config.portfolio.starting_capital)
             self._broker_mode = "simulated"
-            logger.info("SimBroker initialised (no Alpaca keys found)")
+            logger.info("SimBroker initialised (forced via KLAWTRADE_FORCE_SIM)")
+        else:
+            provider = self.config.broker.provider
+            self.broker = create_broker(
+                provider=provider,
+                paper=self.config.broker.paper,
+            )
+            if isinstance(self.broker, SimBroker):
+                self._broker_mode = "simulated"
+                self.broker = SimBroker(initial_cash=self.config.portfolio.starting_capital)
+                logger.info("SimBroker initialised (no %s keys found)", provider)
+            else:
+                self._broker_mode = provider
+                logger.info(
+                    "%s broker initialised (paper=%s)",
+                    provider.upper(),
+                    self.config.broker.paper,
+                )
         self.order_manager = OrderManager(broker=self.broker)
 
         # Database
@@ -164,7 +177,11 @@ class KlawTrade:
         self._last_day = now.day
         self._last_week = now.isocalendar()[1]
 
-        mode_label = "PAPER TRADING (Alpaca)" if self._broker_mode == "alpaca" else "SIMULATION"
+        if self._broker_mode == "simulated":
+            mode_label = "SIMULATION"
+        else:
+            trade_type = "PAPER TRADING" if self.config.broker.paper else "LIVE TRADING"
+            mode_label = f"{trade_type} ({self._broker_mode.upper()})"
         logger.info(
             "KlawTrade initialised",
             extra={"mode": self.config.system.mode, "broker": self._broker_mode},

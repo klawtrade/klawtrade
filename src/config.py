@@ -34,6 +34,16 @@ class BrokerConfig(BaseModel):
     provider: str = "alpaca"
     paper: bool = True
 
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, v: str) -> str:
+        supported = ("alpaca", "ibkr", "coinbase", "binance", "kraken", "tradier")
+        if v not in supported:
+            raise ValueError(
+                f"broker provider must be one of {supported}, got '{v}'"
+            )
+        return v
+
 
 class CircuitBreakerConfig(BaseModel):
     consecutive_losses_halt: int = 5
